@@ -1,0 +1,79 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import heapq
+import matplotlib.animation as animation
+
+# Grid setup
+rows, cols = 10, 10
+grid = np.zeros((rows, cols))
+
+# Fixed obstacles
+obstacles = [(3,3), (3,4), (3,5), (6,7), (7,7), (8,7), (4,6), (5,6), (2,2)]
+for obs in obstacles:
+    grid[obs] = 1
+
+start = (0, 0)
+goal = (9, 9)
+
+# Heuristic function
+def heuristic(a, b):
+    return abs(a[0]-b[0]) + abs(a[1]-b[1])
+
+# A* Algorithm
+def astar(grid, start, goal):
+    open_list = []
+    heapq.heappush(open_list, (0 + heuristic(start, goal), 0, start, [start]))
+    visited = set()
+
+    while open_list:
+        f, g, current, path = heapq.heappop(open_list)
+        if current == goal:
+            return path
+        if current in visited:
+            continue
+        visited.add(current)
+
+        for dx, dy in [(0,1),(1,0),(0,-1),(-1,0)]:
+            nx, ny = current[0]+dx, current[1]+dy
+            if 0 <= nx < rows and 0 <= ny < cols and grid[nx, ny] == 0:
+                new_cost = g + 1
+                new_path = path + [(nx, ny)]
+                heapq.heappush(open_list, (new_cost + heuristic((nx, ny), goal), new_cost, (nx, ny), new_path))
+    return None
+
+path = astar(grid, start, goal)
+
+# --- Animation setup ---
+fig, ax = plt.subplots(figsize=(6,6))
+ax.imshow(grid, cmap='gray_r', origin='upper')
+ax.set_title("Animated A* Pathfinding AI Agent", fontsize=14, fontweight='bold')
+
+# Add Start and Goal markers
+ax.plot(start[1], start[0], "bo", markersize=10, label="Start")
+ax.plot(goal[1], goal[0], "ro", markersize=10, label="Goal")
+
+# Grid lines
+ax.set_xticks(np.arange(-0.5, cols, 1))
+ax.set_yticks(np.arange(-0.5, rows, 1))
+ax.grid(True, color='black', linewidth=0.5)
+ax.legend(loc="upper left")
+
+# Agent marker (moving dot)
+agent, = ax.plot([], [], "go", markersize=10)
+
+# Animation function
+def init():
+    agent.set_data([], [])
+    return agent,
+
+def update(frame):
+    y, x = path[frame]
+    agent.set_data(x, y)
+    return agent,
+
+ani = animation.FuncAnimation(
+    fig, update, frames=len(path), init_func=init,
+    interval=400, blit=True, repeat=False
+)
+
+plt.show()
